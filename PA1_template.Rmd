@@ -1,25 +1,241 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Week 2 Project 1"
+author: "sandhya avasthi"
+date: "27 February 2018"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
-## Loading and preprocessing the data
+## Project 1 Introduction
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+The variables included in this dataset are:
+
+steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+date: The date on which the measurement was taken in YYYY-MM-DD format
+interval: Identifier for the 5-minute interval in which measurement was taken
+
+# Step 1 Loading and preprocessing of dataset
+```{r loading datasets}
+# 1 Code for reading the dataset and or processing the data
+stepData <- read.csv('activity.csv',stringsAsFactors = FALSE)
+```
+
+# Step 2 Histogram of the total number of steps taken each day
+
+```{r code2, echo=TRUE}
+# 2 Histogram of the total number of steps taken each day
+
+# Get list of unique days
+uniDays = unique(stepData$date)
+
+# Preallocate 
+totPerDay = 0   # Total Steps per day
+meanPerDay = 0  # Mean Steps per day
+maxIntVal = 0   # Maximum number steps per day
+maxIntInt = vector(mode="numeric", length=length(uniDays)) # Interval in which maximum steps occurred
+
+# Loop through each day
+for (i in 1:length(uniDays)) {
+  # Get temporay day
+  tDay <- uniDays[i]
+  # Get index of intervals matching temporaty day
+  tDayIn <- stepData$date == tDay
+  # Use index to get step values
+  stepVec <- stepData$steps[tDayIn]
+  # Obtain maximum value for all intervals during temporary day
+  maxIntVal[i] <- max(stepVec)
+  
+  # If all intervals are missing data then fill max with NA
+  if (is.na(maxIntVal[i])){
+    maxIntInt[i] = NA
+  }  else {
+    # Else get Interval identity for maximum steps
+    maxIntInt[i] <- which.max(stepVec)
+  }
+
+  # Sum the total number of steps per day  
+  totPerDay[i] = sum(stepVec)
+  # Get mean of steps per interval per day
+  meanPerDay[i] = mean(stepVec, na.rm = TRUE)
+
+}
+
+# Plot histogram of total number of steps per day
+hist(totPerDay, breaks = 10)
+```
+# Step 3 Calculating Mean and Median of steps taken each day
+```{r code3}
+# 3. Mean and median number of steps taken each day
+meanPerDayt = mean(totPerDay, na.rm = TRUE)
+print(paste("Mean Per Day",as.character(round(meanPerDayt)),sep = " "))
+
+medPerDayt = median(totPerDay, na.rm = TRUE)
+print(paste("Median Per Day",as.character(round(medPerDayt)),sep = " "))
+```
+# Step 4 Showing Time Series Plot for average steps
+```{r code4}
+# 4. Time series plot of the average number of steps taken
+
+# Compute index for days with NA
+uniDays = unique(stepData$date)
+
+allDays = vector(mode="numeric", length=0)
+
+for (i in 1:length(uniDays)) {
+  
+  tDay <- uniDays[i]
+  
+  tDayIn <- stepData$date == tDay
+  
+  stepVec <- stepData$steps[tDayIn]
+  
+  allDays = cbind(allDays, stepVec)
+  
+}
+
+meanInt = round(rowMeans(allDays,na.rm = TRUE))
+plot(meanInt,type = 'l',ylab = 'Weekday Interval Means',xlab = 'Interval')
+
+```
+
+# Step 5 Minute interval that contains maximum number of steps
+```{r code 5}
+# 5. The 5-minute interval that, on average, contains the maximum number of steps
+mean5minInt <- round(mean(maxIntInt, na.rm = TRUE))
+print(paste(as.character(mean5minInt)," is the 5-minute interval that, on average, contains the max number of steps",sep = " "))
 
 
+```
+# Step 6 Code for Describing strategy for imputing missing data
+```{r code 6}
+# 6. Code to describe and show a strategy for imputing missing data
 
-## What is mean total number of steps taken per day?
+# 1. Create a maxtrix with columns representing days and rows representing intervals.
+#    a. Dimensions = row x column = intervals x days
+# 2. Examine each row of the matrix which contains one interval for all days.
+#    a. Find index of days with missing days for that interval
+#    b. Compute mean of days with intervals present
+#    c. Replace NA intervals with mean of intervals with data
 
+# Step 1
+# Unique days
+uniDays = unique(stepData$date)
+# preallocate empty vector
+allDays = vector(mode="numeric", length=0)
 
+# Loop through days
+for (i in 1:length(uniDays)) {
+  # Get temporary day
+  tDay <- uniDays[i]
+  # Get index for temporary day
+  tDayIn <- stepData$date == tDay
+  # Use index to get interval step data
+  stepVec <- stepData$steps[tDayIn]
+  # Insert interval data into column of matrix
+  allDays = cbind(allDays, stepVec)
+  
+}
 
-## What is the average daily activity pattern?
+# 1. Number of missing intervals
+numMiss = sum(is.na(allDays))
+print(paste("Number of missing intervals is ",as.character(numMiss),sep = " "))
 
+# Step 2
+# Create empty matrix
+allDays2 = matrix(data=NA,nrow=dim(allDays)[1],ncol=dim(allDays)[2])
 
+# Loop through each row
+for (i in 1:dim(allDays)[1]) {
+  # temporary row
+  tempRow = allDays[i,]
+  # Get index of missing values
+  naInd = is.na(tempRow)
+  # Get mean of values present
+  mRow = mean(tempRow, na.rm = TRUE)
+  # Replace missing values with mean
+  tempRow[naInd] = round(mRow)
+  # Insert new row into preallocated matrix
+  allDays2[i,] = tempRow
+  
+}
 
-## Imputing missing values
+meanPerDayt2 = mean(colSums(allDays2))
+print(paste("Mean Per Day with no missing values",as.character(round(meanPerDayt2)),sep = " "))
 
+medPerDayt2 = median(colSums(allDays2))
+print(paste("Median Per Day with no missing values",as.character(round(medPerDayt2)),sep = " "))
+```
+# Step 7 Histogram of the total number of steps/day 
+```{r code 7}
+# Data are not much different with imputed missing values
+# 7. Histogram of the total number of steps taken each day after missing values are imputed
+# Get unique days
+uniDays = unique(stepData$date)
+# Preallocate empty data holder
+totPerDay2 = 0
+# Loop through days
+for (i in 1:length(uniDays)) {
+  # Get temporary column = intervals for single day with missing values replaced by means
+  tempCol = allDays2[,i]
+  # Get new sum with imputed missing values
+  totPerDay2[i] = sum(tempCol)
+  
+}
+# Create histogram
+hist(totPerDay2, breaks = 10)
+```
 
+# Step 8 Panel plot comparing average number of steps
+```{r code 8}
+# 8. Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+# Get list of unique days
+uniDays = unique(stepData$date)
 
-## Are there differences in activity patterns between weekdays and weekends?
+# Create empty vector for weekend day information
+weekEndDays = vector(mode="numeric", length=0)
+# Create empty vector for week day information
+weekDays = vector(mode="numeric", length=0)
+
+# Loop through each day
+for (i in 1:length(uniDays)) {
+  
+  tDay <- uniDays[i] # Current Day
+  
+  tDayIn <- stepData$date == tDay # Get Step Intervals
+  
+  stepVec <- stepData$steps[tDayIn] # Get Step Values
+  
+  # If all intervals are missing then skip the day
+  if (sum(!is.na(stepVec))==0) {
+    next
+  } else {
+    # Check whether the day is a weekday or weekend day
+    checkDay = weekdays(as.Date(tDay))
+    
+    # If day is a weekend day then put in weekend day vector
+    if (checkDay == 'Saturday' | checkDay == 'Sunday'){
+      weekEndDays = cbind(weekEndDays, stepVec)
+      # Else put in week day vector
+    } else {
+      weekDays = cbind(weekDays, stepVec)
+    }
+  }
+}
+
+# Compute the mean of the rows of the weekend matrix
+weekEndMeans <- round(rowMeans(weekEndDays))
+# Compute the mean of the rows of the week matrix
+weekMeans <- round(rowMeans(weekDays))
+
+# Plot two panels
+par(mfrow = c(1,2))
+plot(weekMeans,type = "l", ylab = 'Weekday Interval Means',xlab = 'Interval')
+plot(weekEndMeans,type = "l", ylab = 'WeekEndday Interval Means', xlab = 'Interval')
+
+# 9. All of the R code needed to reproduce the results (numbers, plots, etc.) in the report
+```
